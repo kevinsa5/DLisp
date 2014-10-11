@@ -12,6 +12,9 @@ import env;
 class expr
 {
 	Variant val;
+	this(Variant v){
+		val = v;
+	}
 	this(bool b){
 		val = b;
 	}
@@ -30,19 +33,30 @@ class expr
 	bool atomic(){
 		return val.type != typeid(expr[]);
 	}
+	
+	override string toString()
+    {
+        if(atomic){
+        	if(types) return to!string(val) ~ " (" ~ to!string(val.type)~")";
+        	else return to!string(val);
+        }
+        string s = "";
+        foreach(expr e; val.get!(expr[])){
+        	s ~= e.toString() ~ " ";
+        }
+        return "(" ~ s[0..$-1] ~ ")";
+    }
 }
 
-
-
-string[] tokenize(string fname){
-	File file = File(fname, "r");
+string[] tokenize(File file){
 	string[] tokens;
-
-	while(!file.eof()){
+	int left = 0, right = 0;
+	while(!(file.eof() || (left == right && right != 0))){
 		string s = file.readln();
+		left += s.split("(").length;
+		right += s.split(")").length;
 		tokens ~= chomp(s).replace("("," ( ").replace(")"," ) ").split();
 	}
-	file.close();
 	return tokens;
 }
 
@@ -86,54 +100,71 @@ expr eval(expr tree, Env env){
 	else {
 		expr[] e = tree.val.get!(expr[]);
 		expr op = e[0];
-		e = e[1..$];
-		for(int i = 0; i < e.length; i++){
-			if(!e[i].atomic)
-				e[i] = eval(e[i], env);
+		expr function(expr[], Env) f = env.findFunction(op);
+		if(f == null){
+			throw new Exception("No such function: " ~ to!string(op.val));
 		}
-		return env.findFunction(op)(e);
+		expr[] args = e[1..$].dup;
+		for(int i = 0; i < args.length; i++){
+			if(!args[i].atomic){
+				args[i] = eval(args[i], env);
+			}
+		}
+		return f(args, env);
 	}
 }
 
 void writeTree(expr tree, int level = 0){
 	if(tree.atomic){
-		writeln("\t".replicate(level), tree.val," (", tree.val.type,")");
+		writeln("\t".replicate(level), tree.toString());
 	} else {
 		foreach(e; tree.val.get!(expr[])){
 			if(e.atomic){
-				writeln("\t".replicate(level), e.val," (",e.val.type,")");
-			} else{
+				writeln("\t".replicate(level), e.toString);
+			} else {
 				writeTree(e, level + 1);
 			} 
 		}
 	}
 }
 
+bool types;
+
 void main(string[] args)
 {
 	string fname = "";
-	bool pretty = true;
+	types = false;
 	
   	getopt(
     	args,
     	"f", &fname,
-		"pretty", &pretty);	
-	
-	if(fname == ""){
-		writeln("must pass a lisp file to parse (-f file.scm)");
-		return;
-	}
-	
+		"types", &types);	
+		
 	Env env = new Env();
-	string[] tokens = tokenize(fname);
-	expr tree = new expr(bubble(tokens));
-	
-	if(pretty){
-		writeln("Tree:");
-		writeTree(tree);
-		writeln();
-		writeln("eval'd:");
-	}
-	expr e = eval(tree, env);
-	writeTree(e);
+	do {
+		string[] tokens;
+		if(fname != ""){
+			File file = File(fname, "r");
+			tokens = tokenize(file);
+			file.close();
+		} else {
+			write("> ");
+			tokens = tokenize(stdin);
+		}
+		expr tree = new expr(bubble(tokens));
+		/+
+		if(pretty){
+			writeln("Tree:");
+			writeTree(tree);
+			writeln();
+		}
+		+/
+		try{
+			expr e = eval(tree, env);
+			writeln(e);
+		} catch(VariantException ex){
+			writeln("error");
+		}
+
+	} while (fname == "");
 }
