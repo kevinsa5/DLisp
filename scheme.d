@@ -69,6 +69,7 @@ Variant parseValue(string token){
 		Variant e = to!bool(token);
 		return e;
 	}catch(ConvException e){}
+	
 	Variant e = new symbol(token);
 	return e;
 }

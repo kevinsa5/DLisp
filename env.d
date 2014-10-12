@@ -43,6 +43,20 @@ class Env
 			addFunction("length", &length);
 			addFunction("append", &append);
 			addFunction("list-ref", &list_ref);
+			addFunction(">", &gt);
+			addFunction("<", &lt);
+			addFunction(">=", &ge);
+			addFunction("<=", &le);
+			addFunction("zero?", &zero);
+			addFunction("positive?", &positive);
+			addFunction("negative?", &negative);
+			addFunction("max", &max);
+			addFunction("min", &min);
+			addFunction("abs", &abs);
+			addFunction("modulo", &modulo);
+			addFunction("remainder", &remainder);
+			addFunction("quotient", &quotient);
+			
 		}
 }
 
@@ -81,5 +95,66 @@ expr append(expr[] list, Env env){
 
 expr list_ref(expr[] list, Env env){
 	return list[0].val.get!(expr[])[list[1].val.get!(long)];
+}
+
+expr genericComparison(bool delegate(Variant a, Variant b) f, expr[] list, Env env){
+	if(list.length == 2) 
+		return new expr(f(list[0].val, list[1].val));
+	return new expr(f(list[0].val, list[1].val) && genericComparison(f, list[1..$], env).val.get!(bool));
+}
+
+expr gt(expr[] list, Env env){
+	return genericComparison(delegate bool(a,b){return (a>b);}, list, env);
+}
+
+expr lt(expr[] list, Env env){
+	return genericComparison(delegate bool(a,b){return (a<b);}, list, env);
+}
+
+expr ge(expr[] list, Env env){
+	return genericComparison(delegate bool(a,b){return (a>=b);}, list, env);
+}
+
+expr le(expr[] list, Env env){
+	return genericComparison(delegate bool(a,b){return (a<=b);}, list, env);
+}
+
+expr zero(expr[] list, Env env){
+	if(list.length == 0) return new expr(true);
+	return new expr(list[0].val == 0 && zero(list[1..$], env));
+}
+expr positive(expr[] list, Env env){
+	if(list.length == 0) return new expr(true);
+	return new expr(list[0].val > 0 && positive(list[1..$], env));
+}
+expr negative(expr[] list, Env env){
+	if(list.length == 0) return new expr(true);
+	return new expr(list[0].val < 0 && negative(list[1..$], env));
+}
+
+expr max(expr[] list, Env env){
+	if(list.length == 1) return list[0];
+	expr max = max(list[1..$], env);
+	return (list[0].val > max.val)? list[0] : max;
+}
+
+expr min(expr[] list, Env env){
+	if(list.length == 1) return list[0];
+	expr min = min(list[1..$], env);
+	return (list[0].val < min.val)? list[0] : min;
+}
+
+expr abs(expr[] list, Env env){
+	return (list[0].val > 0)? list[0] : mul([list[0], new expr(-1)], env);
+}
+
+expr quotient(expr[] list, Env env){
+	return new expr(list[0].val / list[1].val);
+}
+expr remainder(expr[] list, Env env){
+	return modulo(list, env);
+}
+expr modulo(expr[] list, Env env){
+	return new expr(list[0].val % list[1].val);
 }
 
