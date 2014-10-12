@@ -13,27 +13,35 @@ class Env
 	private:
 		Env outer;
 		expr[string] dict;
-		expr function(expr[], Env)[string] funcDict;
+		expr delegate(expr[], Env)[string] funcDict;
 	public:
 		this(Env o = null){
 			outer = o;
-			addBuiltins();
 		}
-		void addSymbol(string name, expr val){
-			dict[name] = val;
+		void addSymbol(symbol s, expr val){
+			dict[s.name] = val;
 		}
 		void addFunction(string name, expr function(expr[], Env) f){
-			funcDict[name] = f;
+			funcDict[name] = std.functional.toDelegate(f);
 		}
-		expr function(expr[], Env) findFunction(expr op){
-			if(op.val.get!(symbol).name in funcDict){
-				return funcDict[op.val.get!(symbol).name];
-			}
+		void addDelegate(string name, expr delegate(expr[], Env) d){
+			funcDict[name] = d;
+		}
+		expr find(symbol s){
+			if(s.name in dict)
+				return dict[s.name];
 			if(outer !is null)
-				return outer.findFunction(op);
+				return outer.find(s);
 			return null;
 		}
-	private:
+		expr delegate(expr[], Env) findFunction(symbol s){
+			if(s.name in funcDict){
+				return funcDict[s.name];
+			}
+			if(outer !is null)
+				return outer.findFunction(s);
+			return null;
+		}
 		void addBuiltins(){
 			addFunction("+", &add);
 			addFunction("*", &mul);
@@ -47,6 +55,7 @@ class Env
 			addFunction("<", &lt);
 			addFunction(">=", &ge);
 			addFunction("<=", &le);
+			addFunction("=", &equals);
 			addFunction("zero?", &zero);
 			addFunction("positive?", &positive);
 			addFunction("negative?", &negative);
@@ -56,8 +65,28 @@ class Env
 			addFunction("modulo", &modulo);
 			addFunction("remainder", &remainder);
 			addFunction("quotient", &quotient);
-			
+			addFunction("and", &and);
+			addFunction("or", &or);
+			addFunction("print", &print);
 		}
+}
+
+expr print(expr[] list, Env env){
+	foreach (int i, expr e; list){
+		write(e.toString());
+		if(i != list.length-1) write(" ");
+	}
+	writeln();
+	return null;
+}
+
+expr and(expr[] list, Env env){
+	if(list.length == 1) return new expr(list[0].val.type == typeid(bool) && list[0].val != false);
+	return new expr(list[0].val.get!(bool) && and(list[1..$], env).val.get!(bool));
+}
+expr or(expr[] list, Env env){
+	if(list.length == 1) return new expr(list[0].val.type == typeid(bool) && list[0].val != false);
+	return new expr(list[0].val.get!(bool) || or(list[1..$], env).val.get!(bool));
 }
 
 expr add(expr[] list, Env env){
@@ -117,6 +146,10 @@ expr ge(expr[] list, Env env){
 
 expr le(expr[] list, Env env){
 	return genericComparison(delegate bool(a,b){return (a<=b);}, list, env);
+}
+
+expr equals(expr[] list, Env env){
+	return genericComparison(delegate bool(a,b){return (a==b);}, list, env);
 }
 
 expr zero(expr[] list, Env env){

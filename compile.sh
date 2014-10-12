@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dmd -debug scheme.d env.d -ofscheme
+dmd scheme.d env.d -ofscheme -debug -O
 dmd unittests.d -ofunit
 
 rm *.o

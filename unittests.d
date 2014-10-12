@@ -32,17 +32,18 @@ void test(string a, string b){
 
 void main(){
 	types = true;
+	
 	test("(+ 3 5)", "8 (long)");
-	test("(+ 3.0 5)", "8 (float)");
-	test("(+ 3 5.0)", "8 (float)");
-	test("(+ 3.0 5.0)", "8 (float)");
+	test("(+ 3.0 5)", "8.0 (float)");
+	test("(+ 3 5.0)", "8.0 (float)");
+	test("(+ 3.0 5.0)", "8.0 (float)");
 	test("(* 3 5)", "15 (long)");
 	test("(* 3 0)", "0 (long)");
 	test("(+ (* 2 3) (+ 5 4) (* (+ 1 2) 3))", "24 (long)");
-	test("(+ (* 2 3) (+ 5 4.0) (* (+ 1 2) 3))", "24 (float)");
+	test("(+ (* 2 3) (+ 5 4.0) (* (+ 1 2) 3))", "24.0 (float)");
 	test("(- 5 3)","2 (long)");
 	test("(- 5 (+ 5 5) 5)", "-10 (long)");
-	test("(- 10 5.0)", "5 (float)");
+	test("(- 10 5.0)", "5.0 (float)");
 	test("(- 3)", "-3 (long)");
 	test("(- 3 4 5)", "-6 (long)");
 	test("(/ 10 5)", "2 (long)");
@@ -52,7 +53,7 @@ void main(){
 	test("(/ 3.0 4 5)", "0.15 (float)");
 	test("(list 1 2 3)", "(1 (long) 2 (long) 3 (long))");
 	test("(list (+ 1 2) 5 (* 3 4))", "(3 (long) 5 (long) 12 (long))");
-	test("(list 1.0 2 (list 3 4.0 (list 5.0 6) 7) 8)", "(1 (float) 2 (long) (3 (long) 4 (float) (5 (float) 6 (long)) 7 (long)) 8 (long))");
+	test("(list 1.0 2 (list 3 4.0 (list 5.0 6) 7) 8)", "(1.0 (float) 2 (long) (3 (long) 4.0 (float) (5.0 (float) 6 (long)) 7 (long)) 8 (long))");
 	
 	types = false;
 	
@@ -63,29 +64,32 @@ void main(){
 	test("(list-ref (list 9 8 7) 0)", "9");
 	test("(list-ref (list 9 8 7) 1)", "8");
 	test("(list-ref (list 9 8 7) 2)", "7");
-	test("(> 1 0)", "true");
-	test("(> 1 1)", "false");
-	test("(> 1 2)", "false");
-	test("(> 1 1.1)", "false");
-	test("(> 1 0.9)", "true");
-	test("(< 1 0)", "false");
-	test("(< 0 1)", "true");
-	test("(< 5 5)", "false");
-	test("(>= 10 5)", "true");
-	test("(>= 5 5)", "true");
-	test("(>= 1 5)", "false");
-	test("(<= 1 5)", "true");
-	test("(<= 5 5)", "true");
-	test("(<= 10 5)", "false");
-	test("(zero? 0)", "true");
-	test("(zero? 0.1)", "false");
-	test("(zero? -1)", "false");
-	test("(positive? 1)", "true");
-	test("(positive? 0)", "false");
-	test("(positive? -1)", "false");
-	test("(negative? 1)", "false");
-	test("(negative? 0)", "false");
-	test("(negative? -1)", "true");
+	test("(> 1 0)", "#t");
+	test("(> 1 1)", "#f");
+	test("(> 1 2)", "#f");
+	test("(> 1 1.1)", "#f");
+	test("(> 1 0.9)", "#t");
+	test("(< 1 0)", "#f");
+	test("(< 0 1)", "#t");
+	test("(< 5 5)", "#f");
+	test("(>= 10 5)", "#t");
+	test("(>= 5 5)", "#t");
+	test("(>= 1 5)", "#f");
+	test("(<= 1 5)", "#t");
+	test("(<= 5 5)", "#t");
+	test("(<= 10 5)", "#f");
+	test("(= 1 1)", "#t");
+	test("(= 1 1.0)", "#t");
+	test("(= 1 2)", "#f");
+	test("(zero? 0)", "#t");
+	test("(zero? 0.1)", "#f");
+	test("(zero? -1)", "#f");
+	test("(positive? 1)", "#t");
+	test("(positive? 0)", "#f");
+	test("(positive? -1)", "#f");
+	test("(negative? 1)", "#f");
+	test("(negative? 0)", "#f");
+	test("(negative? -1)", "#t");
 	test("(max -1 2 5 2 -6)", "5");
 	test("(max -4 -3 -1)", "-1");
 	test("(max 5 1 2)", "5");
@@ -99,6 +103,31 @@ void main(){
 	test("(remainder 2 5)", "2");
 	test("(quotient 10 3)", "3");
 	test("(quotient 5 10)", "0");
+	test("(if #t 2 3)", "2");
+	test("(if #f 2 3)", "3");
+	test("(if (> 2 1) 5 6)", "5");
+	test("(if (zero? 0) -1 -4)", "-1");
+	test("(if (< (max 1 2 3) (min 1 2 3)) -1.1 1.1)", "1.1");
+	test("(if (or (positive? 1) (negative? 1)) #t #f)", "#t");
+	test("(if (or (positive? 0) (negative? 0)) #t #f)", "#f");
+	test("(if (and #t #f) 0 1)", "1");
+	test("((if #t + *) 3 5)", "8");
+	test("((if (> 1 0) and or) #t #f)", "#f");
+	test("((if (< 1 0) and or) #t #f)", "#t");
+	test("()", "()");
+	test("(print 5)", "5");
+	test("(print (list 1 2 3))", "(1 2 3)");
+	test("(print (list 1 2) (list 3 4) (if #t 1 0))", "(1 2) (3 4) 1");
 	
+	test("(cond ( (> 3 2) 5)
+	            ( (< 3 2) 6)
+	            ( #t 7))", "5");
+	test("(cond ( (< 3 2) 5)
+           		( (> 3 2) 6)
+            	( #t 7))", "6");
+	test("(cond ( (> 0 2) 5)
+           		( (> 0 5) 6)
+            	( #t 7))", "7");
+	            
 	writeln("Passed ", passed, " of ", (passed+failed), " tests.");
 }
