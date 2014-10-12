@@ -1,5 +1,7 @@
-module env;
 // Written in the D programming language
+
+module env;
+
 import std.variant;
 import std.stdio;
 import std.conv;
@@ -24,8 +26,8 @@ class Env
 			funcDict[name] = f;
 		}
 		expr function(expr[], Env) findFunction(expr op){
-			if(op.val.get!(string) in funcDict){
-				return funcDict[op.val.get!(string)];
+			if(op.val.get!(symbol).name in funcDict){
+				return funcDict[op.val.get!(symbol).name];
 			}
 			if(outer !is null)
 				return outer.findFunction(op);
@@ -38,6 +40,9 @@ class Env
 			addFunction("-", &sub);
 			addFunction("/", &div);
 			addFunction("list", &list);
+			addFunction("length", &length);
+			addFunction("append", &append);
+			addFunction("list-ref", &list_ref);
 		}
 }
 
@@ -62,11 +67,19 @@ expr div(expr[] list, Env env){
 }
 
 expr list(expr[] list, Env env){
-	expr[] ret = list.dup;/+
-	foreach (int i, expr e; ret){
-		write("list is calling eval on ");
-		writeExpr(e);
-		if(!e.atomic) ret[i] = eval(e, env);
-	}+/
-	return new expr(ret);
+	return new expr(list);
 }
+
+expr length(expr[] list, Env env){
+	return new expr(list[0].val.get!(expr[]).length);
+}
+
+expr append(expr[] list, Env env){
+	if(list.length == 1) return list[0];
+	return new expr(list[0].val ~ (append(list[1..$], env)).val);
+}
+
+expr list_ref(expr[] list, Env env){
+	return list[0].val.get!(expr[])[list[1].val.get!(long)];
+}
+

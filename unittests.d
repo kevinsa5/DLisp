@@ -10,9 +10,14 @@ string fname = "/tmp/d-unittest";
 int passed = 0;
 int failed = 0;
 
+bool types;
+
 string exec(string s){
 	std.file.write(fname, s);
+	if(types)
 	return std.process.executeShell("./scheme --types=true -f "~fname).output;
+	else
+	return std.process.executeShell("./scheme --types=false -f "~fname).output;
 }
 
 void test(string a, string b){
@@ -26,6 +31,7 @@ void test(string a, string b){
 }
 
 void main(){
+	types = true;
 	test("(+ 3 5)", "8 (long)");
 	test("(+ 3.0 5)", "8 (float)");
 	test("(+ 3 5.0)", "8 (float)");
@@ -47,5 +53,16 @@ void main(){
 	test("(list 1 2 3)", "(1 (long) 2 (long) 3 (long))");
 	test("(list (+ 1 2) 5 (* 3 4))", "(3 (long) 5 (long) 12 (long))");
 	test("(list 1.0 2 (list 3 4.0 (list 5.0 6) 7) 8)", "(1 (float) 2 (long) (3 (long) 4 (float) (5 (float) 6 (long)) 7 (long)) 8 (long))");
+	
+	types = false;
+	
+	test("(append (list 1 2 3) (list 4 5 6))", "(1 2 3 4 5 6)");
+	test("(append (list 1 2) (list 3 4 (list 5 6)))", "(1 2 3 4 (5 6))");
+	test("(length (list 1 2 3))", "3");
+	test("(length (list ))", "0");
+	test("(list-ref (list 9 8 7) 0)", "9");
+	test("(list-ref (list 9 8 7) 1)", "8");
+	test("(list-ref (list 9 8 7) 2)", "7");
+	
 	writeln("Passed ", passed, " of ", (passed+failed), " tests.");
 }

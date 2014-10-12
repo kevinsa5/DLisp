@@ -8,6 +8,15 @@ import std.getopt;
 
 import env;
 
+class symbol
+{
+	string name; 
+	this(string s){ name = s;}
+	
+	override string toString(){
+		return name;
+	}
+}
 
 class expr
 {
@@ -15,37 +24,53 @@ class expr
 	this(Variant v){
 		val = v;
 	}
-	this(bool b){
-		val = b;
-	}
-	this(string s){
-		val = s;
-	}
-	this(long l){
-		val = l;
-	}
-	this(float f){
-		val = f;
-	}
-	this(expr[] e){
-		val = e;
-	}
+	this(bool b){ val = b; }
+	this(string s){ val = s; }
+	this(long l){ val = l; }
+	this(float f){ val = f; }
+	this(expr[] e){ val = e; }
+	
 	bool atomic(){
-		return val.type != typeid(expr[]);
+		return val.type == typeid(bool) || 
+			   val.type == typeid(long) || 
+			   val.type == typeid(float) ||
+			   val.type == typeid(symbol);
 	}
+
 	
 	override string toString()
-    {
-        if(atomic){
-        	if(types) return to!string(val) ~ " (" ~ to!string(val.type)~")";
-        	else return to!string(val);
-        }
-        string s = "";
-        foreach(expr e; val.get!(expr[])){
-        	s ~= e.toString() ~ " ";
-        }
-        return "(" ~ s[0..$-1] ~ ")";
-    }
+	{
+		if(atomic){	
+			if(types) return to!string(val) ~ " (" ~ to!string(val.type)~")";
+			else return to!string(val);
+		}
+		string s = "";
+		foreach(expr e; val.get!(expr[])){
+			s ~= e.toString() ~ " ";
+		}
+		if(s.length != 0)
+			return "(" ~ s[0..$-1] ~ ")";
+		return "()";
+	}
+}
+
+Variant parseValue(string token){
+	try{
+		Variant e = to!long(token);
+		return e;
+	}catch(ConvException e){}
+	
+	try{
+		Variant e = to!float(token);
+		return e;
+	}catch(ConvException e){}
+	
+	try{
+		Variant e = to!bool(token);
+		return e;
+	}catch(ConvException e){}
+	Variant e = new symbol(token);
+	return e;
 }
 
 string[] tokenize(File file){
@@ -61,37 +86,24 @@ string[] tokenize(File file){
 }
 
 expr[] bubble(ref string[] tokens){
+	//eat the open paren
 	string token = tokens[0];
-	tokens = tokens[1..$];
-	if(token == "("){
-		expr[] tree;
-		while(tokens[0] != ")"){
-			expr e;
+	tokens.popFront();
+	expr[] tree;
+	while(tokens[0] != ")"){
+		expr e;
+		if(tokens[0] == "("){
 			expr[] l = bubble(tokens);
-			if(l.length == 1 && l[0].atomic){
-				e = l[0];
-			} else {
-				e = new expr(l);
-			}
-			tree ~= e;
+			tree ~= new expr(l);
+		} else {
+			string t = tokens[0];
+			tokens.popFront();
+			tree ~= new expr(parseValue(t));
 		}
-		tokens = tokens[1..$];
-		return tree;
-	} else {
-		try{
-			int e = to!int(token);
-			return [new expr(e)];
-		}catch(ConvException e){}
-		try{
-			float e = to!float(token);
-			return [new expr(e)];
-		}catch(ConvException e){}
-		try{
-			bool e = to!bool(token);
-			return [new expr(e)];
-		}catch(ConvException e){}
-		return [new expr(token)];
 	}
+	// eat the close paren
+	tokens.popFront();
+	return tree;
 }
 
 expr eval(expr tree, Env env){
@@ -129,16 +141,19 @@ void writeTree(expr tree, int level = 0){
 }
 
 bool types;
+bool pretty;
 
 void main(string[] args)
 {
 	string fname = "";
 	types = false;
+	pretty = false;
 	
   	getopt(
     	args,
     	"f", &fname,
-		"types", &types);	
+		"types", &types,
+		"pretty", &pretty);	
 		
 	Env env = new Env();
 	do {
@@ -148,22 +163,30 @@ void main(string[] args)
 			tokens = tokenize(file);
 			file.close();
 		} else {
-			write("> ");
+			write(": ");
 			tokens = tokenize(stdin);
 		}
-		expr tree = new expr(bubble(tokens));
-		/+
-		if(pretty){
-			writeln("Tree:");
-			writeTree(tree);
-			writeln();
+		if(tokens.length == 0) continue;
+		if(tokens[0] == "set"){
+			if(tokens[1] == "types"){
+				if(tokens[2] == "on") types = true;
+				if(tokens[2] == "off") types = false;
+			} else if(tokens[1] == "pretty"){
+				if(tokens[2] == "on") pretty = true;
+				if(tokens[2] == "off") pretty = false;
+			}
+			continue;
 		}
-		+/
+		expr tree = new expr(bubble(tokens));
+		if(pretty){
+			writeTree(tree);
+			writeln("~~~~~~~~~~~~~");
+		}
 		try{
 			expr e = eval(tree, env);
 			writeln(e);
-		} catch(VariantException ex){
-			writeln("error");
+		} catch(Exception ex){
+			writeln(ex);
 		}
 
 	} while (fname == "");
