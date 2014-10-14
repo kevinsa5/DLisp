@@ -4,28 +4,28 @@ import std.file;
 import std.process;
 import std.string;
 
-pragma(msg, __VERSION__);
+//pragma(msg, __VERSION__);
 
 string fname = "/tmp/d-unittest";
-int passed = 0;
-int failed = 0;
+int pass = 0;
+int fail = 0;
 
 bool types;
 
 string exec(string s){
 	std.file.write(fname, s);
 	if(types)
-	return std.process.executeShell("./scheme --types=true -f "~fname).output;
+	return std.process.executeShell("./lisp --types=true -f "~fname).output;
 	else
-	return std.process.executeShell("./scheme --types=false -f "~fname).output;
+	return std.process.executeShell("./lisp --types=false -f "~fname).output;
 }
 
 void test(string a, string b){
 	string res = chomp(exec(a));
 	if(res == b){
-		passed++;
+		pass++;
 	} else {
-		failed++;
+		fail++;
 		writeln("Failure: ", a, ". Expected: ", b, "; Got: ", res);
 	}
 }
@@ -118,6 +118,9 @@ void main(){
 	test("(print 5)", "5");
 	test("(print (list 1 2 3))", "(1 2 3)");
 	test("(print (list 1 2) (list 3 4) (if #t 1 0))", "(1 2) (3 4) 1");
+	test("(str 5)", "\"5\"");
+	test("(str 5.0)", "\"5.0\"");
+	test("(str (list 1 2 3))", "\"(1 2 3)\"");
 	
 	test("(cond ( (> 3 2) 5)
 	            ( (< 3 2) 6)
@@ -129,5 +132,42 @@ void main(){
            		( (> 0 5) 6)
             	( #t 7))", "7");
 	            
-	writeln("Passed ", passed, " of ", (passed+failed), " tests.");
+	test(
+"run stdlib.lisp
+(define i 0)
+(println i)
+(define i (+ i 1))
+(println i)
+(define i (+ i 3))
+(define i (* i i))
+(println i)
+(println (fib i))",
+"0
+1
+16
+987");
+
+test(
+"run stdlib.lisp
+(define a 1)
+(println a)
+;(define a 2)
+(println a)
+(define a 3);(define a 4)
+(println a)",
+"1
+1
+3");
+
+test(
+"(cond ((= 1 0) 1)
+; here's a comment
+       ((= 1 1) 2))","2");
+
+test(
+"(cond ((< 1 0) 1)
+; (#t 2)
+(#t 3))", "3");
+
+	writeln("Passed ",pass," out of ",pass+fail," unit tests.");
 }

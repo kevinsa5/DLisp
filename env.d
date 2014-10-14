@@ -6,7 +6,7 @@ import std.variant;
 import std.stdio;
 import std.conv;
 
-import scheme;
+import lisp;
 
 class Env
 {
@@ -32,7 +32,7 @@ class Env
 				return dict[s.name];
 			if(outer !is null)
 				return outer.find(s);
-			return null;
+			throw new Exception("No such symbol: "~s.name);
 		}
 		expr delegate(expr[], Env) findFunction(symbol s){
 			if(s.name in funcDict){
@@ -68,15 +68,27 @@ class Env
 			addFunction("and", &and);
 			addFunction("or", &or);
 			addFunction("print", &print);
+			addFunction("error", &error);
+			addFunction("str", &str);
 		}
+}
+
+expr str(expr[] list, Env env){
+	return new expr(list[0].toStringNoTypes());
+}
+
+expr error(expr[] list, Env env){
+	throw new Exception("Lisp Error: " ~ list[0].val.get!string);
 }
 
 expr print(expr[] list, Env env){
 	foreach (int i, expr e; list){
-		write(e.toString());
+		string s = e.toStringNoTypes();
+		if(e.val.type == typeid(string))
+			s = s[1..$-1];
+		write(s);
 		if(i != list.length-1) write(" ");
 	}
-	writeln();
 	return null;
 }
 

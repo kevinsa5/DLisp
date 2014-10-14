@@ -1,6 +1,6 @@
 #!/bin/bash
-
-dmd scheme.d env.d -ofscheme -debug -O
+set -e
+dmd lisp.d env.d -oflisp -debug -O
 dmd unittests.d -ofunit
 
 rm *.o
