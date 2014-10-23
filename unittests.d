@@ -15,9 +15,9 @@ bool types;
 string exec(string s){
 	std.file.write(fname, s);
 	if(types)
-	return std.process.executeShell("./lisp --types=true -f "~fname).output;
+	return std.process.executeShell("lisp --types=true -f "~fname).output;
 	else
-	return std.process.executeShell("./lisp --types=false -f "~fname).output;
+	return std.process.executeShell("lisp --types=false -f "~fname).output;
 }
 
 void test(string a, string b){
@@ -57,8 +57,9 @@ void main(){
 	
 	types = false;
 	
-	test("(append (list 1 2 3) (list 4 5 6))", "(1 2 3 4 5 6)");
-	test("(append (list 1 2) (list 3 4 (list 5 6)))", "(1 2 3 4 (5 6))");
+	test("(append (list 1 2 3) (list 4 5 6))", "(1 2 3 (4 5 6))");
+	test("(append (list 1 2) (list 3 4 (list 5 6)))", "(1 2 (3 4 (5 6)))");
+	test("(append () (list 4 5 6))", "((4 5 6))");
 	test("(length (list 1 2 3))", "3");
 	test("(length (list ))", "0");
 	test("(list-ref (list 9 8 7) 0)", "9");
@@ -120,7 +121,25 @@ void main(){
 	test("(print (list 1 2) (list 3 4) (if #t 1 0))", "(1 2) (3 4) 1");
 	test("(str 5)", "\"5\"");
 	test("(str 5.0)", "\"5.0\"");
+	test("(str \"asd\")", "\"asd\"");
 	test("(str (list 1 2 3))", "\"(1 2 3)\"");
+	test("(strcat \"123\" \"456\")", "\"123456\"");
+	test("(strcat (str 123) (str 456))", "\"123456\"");
+	test("(join (list 1 2 3) (list 4 5 6))", "(1 2 3 4 5 6)");
+	test("(join () (list 4 5 6))", "(4 5 6)");
+	test("(join () ())", "()");
+	
+	
+	test(
+"run stdlib.lisp
+(strindex \"12345\" \"3\")", "2");
+	test(
+"run stdlib.lisp
+(strindex \"12345\" \"6\")", "-1");
+	test(
+"run stdlib.lisp
+(split \"A=B&C=D&E=F&G=H\" \"&\")", "(\"A=B\" \"C=D\" \"E=F\" \"G=H\")");
+
 	
 	test("(cond ( (> 3 2) 5)
 	            ( (< 3 2) 6)
@@ -141,7 +160,7 @@ void main(){
 (define i (+ i 3))
 (define i (* i i))
 (println i)
-(println (fib i))",
+(println (fib-r i))",
 "0
 1
 16
@@ -168,6 +187,10 @@ test(
 "(cond ((< 1 0) 1)
 ; (#t 2)
 (#t 3))", "3");
+
+test(
+"run stdlib.lisp
+(map zero? (list -2 -1 0 1 2))","(#f #f #t #f #f)");
 
 	writeln("Passed ",pass," out of ",pass+fail," unit tests.");
 }

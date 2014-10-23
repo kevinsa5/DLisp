@@ -5,6 +5,7 @@ module env;
 import std.variant;
 import std.stdio;
 import std.conv;
+import std.process;
 
 import lisp;
 
@@ -50,7 +51,10 @@ class Env
 			addFunction("list", &list);
 			addFunction("length", &length);
 			addFunction("append", &append);
+			addFunction("strcat", &strcat);
+			addFunction("strlen", &strlen);
 			addFunction("list-ref", &list_ref);
+			addFunction("str-ref", &string_ref);
 			addFunction(">", &gt);
 			addFunction("<", &lt);
 			addFunction(">=", &ge);
@@ -70,10 +74,41 @@ class Env
 			addFunction("print", &print);
 			addFunction("error", &error);
 			addFunction("str", &str);
+			addFunction("input", &input);
+			addFunction("car", &car);
+			addFunction("cdr", &cdr);
+			addFunction("join", &join);
+			addFunction("get-env", &get_env);
 		}
 }
 
+expr get_env(expr[] list, Env env){
+	return new expr(environment.get(list[0].val.get!string));
+}
+
+expr join(expr[] list, Env env){
+	expr[] l = [];
+	foreach (expr e; list){
+		l ~= e.val.get!(expr[]);
+	}
+	return new expr(l);
+}
+
+expr car(expr[] list, Env env){
+	return (list[0].val.get!(expr[]))[0];
+}
+expr cdr(expr[] list, Env env){
+	return new listexpr((list[0].val.get!(expr[]))[1..$]);
+}
+
+expr input(expr[] list, Env env){
+	if(list.length != 0) print(list, env);
+	return new expr(readln()[0..$-1]);
+}
+
 expr str(expr[] list, Env env){
+	if(list[0].val.type == typeid(string))
+		return new expr(list[0].val.get!(string));
 	return new expr(list[0].toStringNoTypes());
 }
 
@@ -93,11 +128,13 @@ expr print(expr[] list, Env env){
 }
 
 expr and(expr[] list, Env env){
-	if(list.length == 1) return new expr(list[0].val.type == typeid(bool) && list[0].val != false);
+	if(list.length == 1) 
+		return new expr(list[0].val.type == typeid(bool) && list[0].val != false);
 	return new expr(list[0].val.get!(bool) && and(list[1..$], env).val.get!(bool));
 }
 expr or(expr[] list, Env env){
-	if(list.length == 1) return new expr(list[0].val.type == typeid(bool) && list[0].val != false);
+	if(list.length == 1) 
+		return new expr(list[0].val.type == typeid(bool) && list[0].val != false);
 	return new expr(list[0].val.get!(bool) || or(list[1..$], env).val.get!(bool));
 }
 
@@ -122,16 +159,37 @@ expr div(expr[] list, Env env){
 }
 
 expr list(expr[] list, Env env){
-	return new expr(list);
+	return new listexpr(list);
 }
 
 expr length(expr[] list, Env env){
 	return new expr(list[0].val.get!(expr[]).length);
 }
 
+expr strlen(expr[] list, Env env){
+	return new expr(list[0].val.get!(string).length);
+}
+
+expr strcat(expr[] list, Env env){
+	string s = "";
+	foreach (expr e; list){
+		s ~= e.val.get!string;
+	}
+	return new expr(s);
+}
+
 expr append(expr[] list, Env env){
 	if(list.length == 1) return list[0];
-	return new expr(list[0].val ~ (append(list[1..$], env)).val);
+	return new expr(list[0].val ~ list[1..$]);
+}
+
+expr string_ref(expr[] list, Env env){
+	long start = list[1].val.get!long;
+	if(list.length > 2){
+		long end = list[2].val.get!long;
+		return new expr((list[0].val.get!string)[start..end]);
+	}
+	return new expr(to!string((list[0].val.get!string)[start]));
 }
 
 expr list_ref(expr[] list, Env env){

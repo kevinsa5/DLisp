@@ -43,8 +43,20 @@ string strForm(Variant v){
 	if(v.type == typeid(float)) return str(v.get!(float));
 	if(v.type == typeid(string)) return str(v.get!(string));
 	if(v.type == typeid(symbol)) return str(v.get!(symbol));
+	if(v.type == typeid(expr[])) return (new expr(v)).toString();
 	return "bug in strForm()";
 }
+
+class listexpr : expr
+{
+	this(expr[] e){
+		super(e);
+	}
+	override bool atomic(){
+		return true;
+	}
+}
+
 class expr
 {
 	Variant val;
@@ -68,7 +80,7 @@ class expr
 	
 	override string toString()
 	{
-		if(atomic){	
+		if(atomic && val.type != typeid(expr[])){	
 			if(types)
 				return strForm(val) ~ " (" ~ to!string(val.type)~")";
 			else 
@@ -225,6 +237,7 @@ string[] tokenize(File file){
 	foreach (int i, string s; tokens){
 		tokens[i] = s.replace("\\n", "\n").replace("\\t", "\t");
 	}
+	//writeln(tokens);
 	return tokens;
 }
 
@@ -251,13 +264,12 @@ expr[] bubble(ref string[] tokens){
 }
 
 expr eval(expr tree, Env env){
-	//writeTree(tree);
-	//writeln();
 	if(tree is null) return null;
 	if(tree.atomic){
+		if(tree.val.type == typeid(expr[]) && tree.val.get!(expr[])[0].val.type != typeid(symbol)) return tree;
 		if(tree.val.type == typeid(symbol) && env.findFunction(tree.val.get!symbol) == null){
 			return eval(env.find(tree.val.get!symbol), env);
-			}
+		}
 		return tree;
 	} else {
 		expr[] e = tree.val.get!(expr[]);
@@ -296,14 +308,32 @@ expr eval(expr tree, Env env){
 			env.addDelegate(lambdaname, delegate expr(expr[] args, Env env){
 				Env newenv = new Env(env);
 				if(largnames.length != args.length) 
-					throw new Exception("Arity mismatch: lambda function accepts " ~ to!string(largnames.length) ~ " arguments, but was given " ~ to!string(args.length));
+					throw new Exception("Arity mismatch: lambda function accepts " ~ to!string(largnames.length) ~ " arguments, but was given " ~ to!string(args.length) ~ "\nParameter list:" ~ to!string(largnames) ~ "\nGiven parameters:" ~ to!string(args));
 				foreach(int i, expr e; largnames){
 					newenv.addSymbol(e.val.get!symbol, args[i]);
 				}
 				return eval(lbody, newenv);
 			});
 			return new expr(new symbol(lambdaname));
-		} else if(e[0].toStringNoTypes()  == "begin"){
+		} else if(e[0].toStringNoTypes()  == "group"){
+			Env newenv = new Env(env);
+			for(int i = 1; i < e.length-1; i++){
+				eval(e[i], newenv);
+			}
+			return eval(e[$-1], newenv);
+		} else if(e.length == 3 && e[0].toStringNoTypes() == "set"){
+			if(e[1].toStringNoTypes()  == "types"){
+				if(e[2].toStringNoTypes()  == "on") types = true;
+				if(e[2].toStringNoTypes()  == "off") types = false;
+			} else if(e[1].toStringNoTypes()  == "pretty"){
+				if(e[2].toStringNoTypes()  == "on") pretty = true;
+				if(e[2].toStringNoTypes()  == "off") pretty = false;
+			} else if(e[1].toStringNoTypes()  == "trace"){
+				if(e[2].toStringNoTypes()  == "on") trace = true;
+				if(e[2].toStringNoTypes()  == "off") trace = false;
+			} else {
+				writeln("REPL option not found: ", e[1].toStringNoTypes());
+			}
 			return null;
 		} else {
 			expr op = eval(e[0], env);
@@ -311,7 +341,7 @@ expr eval(expr tree, Env env){
 			try {
 				f = env.findFunction(op.val.get!symbol);
 			} catch(Exception e){
-				throw new Exception(op.toString() ~ " is not a valid symbol");
+				throw new Exception(op.toString() ~ " is not a valid function");
 			}
 			if(f == null){
 				throw new Exception("No such function: " ~ to!string(op.val));
@@ -349,13 +379,30 @@ void handleException(Exception e){
 	}
 }
 
+string[] preprocess(File f){
+	string[] tokens = tokenize(f);
+	for (int i = 0; i < tokens.length; i++){
+		if(tokens[i] == "run"){
+			try {
+				tokens =tokens[0..i] ~ preprocess(File(tokens[i+1])) ~ tokens[i+2..$];
+				} catch(Exception e){
+					handleException(e);
+					return null;
+				}
+		}
+	}
+	return tokens;
+}
+
 bool types;
 bool pretty;
 bool trace;
 long lambdaSerial;
+long buildID = 38;
 
 void main(string[] args)
 {
+	
 	string fname = "";
 	types = false;
 	pretty = false;
@@ -369,7 +416,7 @@ void main(string[] args)
 		"trace", &trace);
 	
 	if(fname == ""){
-		writeln("DLisp beta");
+		writeln("DLisp beta, build ", buildID);
 	}
 		
 	Env env = new Env();
@@ -381,7 +428,7 @@ void main(string[] args)
 		if(fname != ""){
 			try { 
 				File file = File(fname, "r");
-				tokens = tokenize(file);
+				tokens = preprocess(file);
 				file.close(); 
 			}
 			catch(Exception ex){
@@ -390,47 +437,10 @@ void main(string[] args)
 			}
 		} else {
 			write(": ");
-			tokens = tokenize(stdin);
+			tokens = preprocess(stdin);
 		}
-		if(tokens.length == 0) continue;
-		if(tokens[0] == "set"){
-			if(tokens[1] == "types"){
-				if(tokens[2] == "on") types = true;
-				if(tokens[2] == "off") types = false;
-			} else if(tokens[1] == "pretty"){
-				if(tokens[2] == "on") pretty = true;
-				if(tokens[2] == "off") pretty = false;
-			} else if(tokens[1] == "trace"){
-				if(tokens[2] == "on") trace = true;
-				if(tokens[2] == "off") trace = false;
-			} else {
-				writeln("REPL option not found: ", tokens[1]);
-			}
-			tokens.popFront();
-			tokens.popFront();
-			tokens.popFront();
-		}
-		if(tokens.length > 0 && tokens[0] == "run"){
-			try {
-				File file = File(tokens[1], "r");
-				string[] libtokens = tokenize(file);
-				file.close();
 
-				while(libtokens.length != 0){
-					expr tree = new expr(bubble(libtokens));
-					try {
-						expr e = eval(tree, env);
-						if(e !is null) writeln(e);
-					} catch(Exception ex){
-						handleException(ex);
-					}
-				}
-			} catch(Exception e){
-				writeln("No such file: ", tokens[1]);
-			}
-			tokens.popFront();
-			tokens.popFront();
-		}
+		if(tokens.length == 0) continue;
 		while(tokens.length != 0){
 			expr tree = new expr(bubble(tokens));
 			if(pretty){
