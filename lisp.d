@@ -195,7 +195,7 @@ string[] tokenSplit(string s){
 			i = -1;
 			continue;
 		}
-		if(s[i] == ';'){
+		if(s[i] == ';' || s[i] == '#'){
 			while(i < s.length && s[i] != '\n'){
 				i++;
 			}
@@ -398,7 +398,7 @@ bool types;
 bool pretty;
 bool trace;
 long lambdaSerial;
-long buildID = 38;
+long buildID = 40;
 
 void main(string[] args)
 {

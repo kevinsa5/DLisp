@@ -91,7 +91,7 @@ expr join(expr[] list, Env env){
 	foreach (expr e; list){
 		l ~= e.val.get!(expr[]);
 	}
-	return new expr(l);
+	return new listexpr(l);
 }
 
 expr car(expr[] list, Env env){
