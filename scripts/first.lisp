@@ -1,4 +1,6 @@
-run ../libs/libstd.lisp
+#!/usr/bin/lisp -f
+
+run libs/libstd.lisp
 (println "Hello!")
 (define name "Lisp")
 
@@ -17,15 +19,16 @@ run ../libs/libstd.lisp
 (define row (lambda (n) 
 	(println (strcat (str n) " : " (str (fib-r n))))))
 
-;(map row (sequence 1 10 1))
-(suppress (map row (list 1 2 3)))
+(map row (sequence 1 15 1))
 
 (define print'n'calc (lambda (n)
 	(group
 	(println "Here's a group of commands!")
 	(println "This is the second one.")
+	(define greet (lambda () (println "This shadows the other one.")))
+	(greet)
 	(define a 2)
-	(println "The last one is returned:")
+	(println "The value of the last command is returned:")
 	(* a n))))
 
 (print'n'calc 5)
