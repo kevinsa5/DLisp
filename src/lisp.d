@@ -59,7 +59,9 @@ class listexpr : expr
 
 class nullexpr : expr
 {
-	this(expr[] e){super(e);}
+	this(expr[] e){
+		super(e);
+	}
 	override bool atomic(){
 		return true;
 	}
@@ -415,11 +417,31 @@ string[] preprocess(File f){
 	return tokens;
 }
 
+void evalTokens(ref string[] tokens, Env env){
+	while(tokens.length != 0){
+		expr tree = new expr(bubble(tokens));
+		if(pretty){
+			writeTree(tree);
+			writeln("~".replicate(40));
+		}
+		try{
+			expr e = eval(tree, env);
+			//incredibly messy to avoid printing the results of 
+			//functions that return null (eg print)
+			if(e !is null && (typeid(e) != typeid(listexpr) || ((e.val.get!(expr[]).length == 0) || (e.val.get!(expr[]).length > 0 && e.val.get!(expr[])[0] !is null)))){
+				writeln(e);
+			}
+		} catch(Exception ex){
+			handleException(ex);
+		}
+	}
+}
+
 bool types;
 bool pretty;
 bool trace;
 long lambdaSerial;
-long buildID = 93;
+long buildID = 124;
 
 void main(string[] args)
 {
@@ -427,13 +449,15 @@ void main(string[] args)
 	types = false;
 	pretty = false;
 	trace = false;
+	bool runstd = false;
 	
   	getopt(
     	args,
     	"f", &fname,
 		"types", &types,
 		"pretty", &pretty,
-		"trace", &trace);
+		"trace", &trace,
+		"std", &runstd);
 	
 	if(fname == ""){
 		writeln("DLisp beta, build ", buildID);
@@ -442,9 +466,15 @@ void main(string[] args)
 	Env env = new Env();
 	env.addBuiltins();
 	lambdaSerial = 0;
-	
+	string[] tokens;
+	if(runstd){
+		tokens = preprocess(File("libs/libstd.lisp"));
+		while(tokens.length != 0){
+			evalTokens(tokens, env);
+		}
+	}
+
 	do {
-		string[] tokens;
 		if(fname != ""){
 			try { 
 				File file = File(fname, "r");
@@ -459,25 +489,7 @@ void main(string[] args)
 			write(": ");
 			tokens = preprocess(stdin);
 		}
-
 		if(tokens.length == 0) continue;
-		while(tokens.length != 0){
-			expr tree = new expr(bubble(tokens));
-			if(pretty){
-				writeTree(tree);
-				writeln("~".replicate(40));
-			}
-			try{
-				expr e = eval(tree, env);
-				//incredibly messy to avoid printing the results of 
-				//functions that return null (eg print)
-				if(e !is null && (typeid(e) != typeid(listexpr) || ((e.val.get!(expr[]).length == 0) || (e.val.get!(expr[]).length > 0 && e.val.get!(expr[])[0] !is null)))){
-					writeln(e);
-				}
-			} catch(Exception ex){
-				handleException(ex);
-			}
-		}
-
+		evalTokens(tokens, env);
 	} while (fname == "");
 }

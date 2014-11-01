@@ -16,9 +16,9 @@ bool types;
 string exec(string s){
 	std.file.write(fname, s);
 	if(types)
-	return std.process.executeShell("lisp --types=true -f "~fname).output;
+		return std.process.executeShell("lisp --types=true --std -f "~fname).output;
 	else
-	return std.process.executeShell("lisp --types=false -f "~fname).output;
+		return std.process.executeShell("lisp --types=false --std -f "~fname).output;
 }
 
 void test(string a, string b){
@@ -131,10 +131,23 @@ void main(){
 	test("(join () ())", "()");
 	
 	
-	test(libstd ~ "(strindex \"12345\" \"3\")", "2");
-	test(libstd ~ "(strindex \"12345\" \"6\")", "-1");
-	test(libstd ~ "(split \"A=B&C=D&E=F&G=H\" \"&\")", "(\"A=B\" \"C=D\" \"E=F\" \"G=H\")");
-
+	test("(strindex \"12345\" \"3\")", "2");
+	test("(strindex \"12345\" \"6\")", "-1");
+	test("(split \"A=B&C=D&E=F&G=H\" \"&\")", "(\"A=B\" \"C=D\" \"E=F\" \"G=H\")");
+	test("(sequence 1 10 1)", "(1 2 3 4 5 6 7 8 9 10)");
+	test("(sequence 5 0 -1)", "(5 4 3 2 1 0)");
+	test("(sequence 1 10 2)", "(1 3 5 7 9)");
+	test("(sequence 5 10 1.5)", "(5 6.5 8.0 9.5)");
+	test("(any (list #f #f #f))", "#f");
+	test("(any (list ))", "#f");
+	test("(any (list #t #f #f))", "#t");
+	test("(any (list #f #t #f))", "#t");
+	test("(any (list #f #f #t))", "#t");
+	test("(all (list #t #t #t))", "#t");
+	test("(all (list #f #t #t))", "#f");
+	test("(all (list #t #f #t))", "#f");
+	test("(all (list #t #t #f))", "#f");
+	test("(all (list ))", "#t");
 	
 	test("(cond ( (> 3 2) 5)
 	            ( (< 3 2) 6)
@@ -146,7 +159,7 @@ void main(){
            		( (> 0 5) 6)
             	( #t 7))", "7");
 	            
-	test(libstd ~
+	test(
 "(define i 0)
 (println i)
 (define i (+ i 1))
@@ -160,7 +173,7 @@ void main(){
 16
 987");
 
-test(libstd ~
+test(
 "(define a 1)
 (println a)
 ;(define a 2)
@@ -181,7 +194,7 @@ test(
 ; (#t 2)
 (#t 3))", "3");
 
-test(libstd ~
+test(
 "(map zero? (list -2 -1 0 1 2))","(#f #f #t #f #f)");
 
 	writeln("Passed ",pass," out of ",pass+fail," unit tests.");

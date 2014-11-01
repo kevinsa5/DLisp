@@ -8,13 +8,23 @@
 
 (define println (lambda (n) (print (strcat (str n) "\n"))))
 
+(define all (lambda (lis) 
+	(cond ((= (length lis) 0)  #t)
+		  ((car lis) (all (cdr lis)))
+		  (#t #f))))
+
+(define any (lambda (lis) 
+	(cond ((= (length lis) 0)  #f)
+		  ((car lis) #t)
+		  (#t (any (cdr lis))))))
+
 (define map (lambda (f lis)
 	(if (= (length lis) 1) (list (f (car lis))) 
 						   (join (list (f (car lis))) (map f (cdr lis))))))
 
 (define sequence (lambda (start end delta)
-	(cond ((and (positive? delta) (> (+ start delta) end)) ())
-		  ((and (negative? delta) (< (+ start delta) end)) ())
+	(cond ((and (positive? delta) (> start end)) ())
+		  ((and (negative? delta) (< start end)) ())
 		  (#t (join (list start) (sequence (+ start delta) end delta))))))
 
 (define strindex (lambda (s key)

@@ -83,7 +83,7 @@ class Env
 }
 
 expr get_env(expr[] list, Env env){
-	return new expr(environment.get(list[0].val.get!string));
+	return new expr(std.process.environment.get(list[0].val.get!string));
 }
 
 expr join(expr[] list, Env env){
