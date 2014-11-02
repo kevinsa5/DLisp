@@ -79,9 +79,15 @@ class Env
 			addFunction("cdr", &cdr);
 			addFunction("join", &join);
 			addFunction("get-env", &get_env);
+			addFunction("shexec", &shexec);
 		}
 }
 
+expr shexec(expr[] list, Env env){
+	auto cmd = executeShell(list[0].val.get!string);
+	if (cmd.status != 0) error([new expr(cmd.output)], env);
+	return new expr(cmd.output);
+}
 expr get_env(expr[] list, Env env){
 	return new expr(std.process.environment.get(list[0].val.get!string));
 }

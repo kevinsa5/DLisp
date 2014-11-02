@@ -8,6 +8,7 @@ import std.getopt;
 import std.ascii;
 
 import env;
+import buildData;
 
 class symbol
 {
@@ -407,7 +408,7 @@ string[] preprocess(File f){
 	for (int i = 0; i < tokens.length; i++){
 		if(tokens[i] == "run"){
 			try {
-				tokens =tokens[0..i] ~ preprocess(File(tokens[i+1])) ~ tokens[i+2..$];
+				tokens =tokens[0..i] ~ preprocess(File(rootDir ~ tokens[i+1])) ~ tokens[i+2..$];
 				} catch(Exception e){
 					handleException(e);
 					return null;
@@ -441,7 +442,7 @@ bool types;
 bool pretty;
 bool trace;
 long lambdaSerial;
-long buildID = 124;
+string rootDir;
 
 void main(string[] args)
 {
@@ -450,17 +451,26 @@ void main(string[] args)
 	pretty = false;
 	trace = false;
 	bool runstd = false;
+	rootDir = join(args[0].split("/")[0..$-2], "/") ~ "/";
 	
+	bool printVersion = false;
   	getopt(
     	args,
     	"f", &fname,
 		"types", &types,
 		"pretty", &pretty,
 		"trace", &trace,
-		"std", &runstd);
+		"std", &runstd,
+		"version", &printVersion);
+	
+	if(printVersion){
+		writeln("DLisp beta, build ", buildData.buildID);
+		return;
+	}
 	
 	if(fname == ""){
-		writeln("DLisp beta, build ", buildID);
+		writeln("DLisp beta, build ", buildData.buildID);
+		writeln("Root directory: ", rootDir);
 	}
 		
 	Env env = new Env();
