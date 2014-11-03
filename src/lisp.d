@@ -478,7 +478,7 @@ void main(string[] args)
 	lambdaSerial = 0;
 	string[] tokens;
 	if(runstd){
-		tokens = preprocess(File("libs/libstd.lisp"));
+		tokens = preprocess(File(rootDir ~ "libs/libstd.lisp"));
 		while(tokens.length != 0){
 			evalTokens(tokens, env);
 		}
