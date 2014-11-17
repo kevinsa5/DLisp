@@ -25,6 +25,7 @@ void test(string a, string b){
 	string res = chomp(exec(a));
 	if(res == b){
 		pass++;
+		if(pass % 10 == 0) writeln((pass+fail), " tests completed");
 	} else {
 		fail++;
 		writeln("Failure: ", a, ". Expected: ", b, "; Got: ", res);

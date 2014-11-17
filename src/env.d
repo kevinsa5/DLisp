@@ -84,7 +84,7 @@ class Env
 }
 
 expr shexec(expr[] list, Env env){
-	auto cmd = executeShell(list[0].val.get!string);
+	auto cmd = std.process.executeShell(list[0].val.get!string);
 	if (cmd.status != 0) error([new expr(cmd.output)], env);
 	return new expr(cmd.output);
 }

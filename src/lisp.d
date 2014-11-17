@@ -7,6 +7,7 @@ import std.conv;
 import std.getopt;
 import std.ascii;
 
+
 import env;
 import buildData;
 
@@ -286,8 +287,11 @@ expr[] bubble(ref string[] tokens){
 expr eval(expr tree, Env env){
 	if(tree is null) return new nullexpr(null);
 	if(tree.atomic){
-		if(tree.val.type == typeid(expr[]) && ((tree.val.get!(expr[])).length > 0) && tree.val.get!(expr[])[0].val.type != typeid(symbol))
-			return tree;
+		if(tree.val.type == typeid(expr[])){ 
+			auto li = tree.val.get!(expr[]);
+			if(li.length > 0 && li[0].val.type != typeid(symbol))
+				return tree;
+		}
 		if(tree.val.type == typeid(symbol) && env.findFunction(tree.val.get!symbol) == null){
 			return eval(env.find(tree.val.get!symbol), env);
 		}
@@ -438,6 +442,11 @@ void evalTokens(ref string[] tokens, Env env){
 	}
 }
 
+void printInfo(){
+	writeln("DLisp beta, build ", buildData.buildID);
+	writeln("DMD version ", buildData.version_major, ".", buildData.version_minor);
+}
+
 bool types;
 bool pretty;
 bool trace;
@@ -451,25 +460,24 @@ void main(string[] args)
 	pretty = false;
 	trace = false;
 	bool runstd = false;
-	rootDir = join(args[0].split("/")[0..$-2], "/") ~ "/";
+	rootDir = std.string.join(args[0].split("/")[0..$-2], "/") ~ "/";
 	
 	bool printVersion = false;
-  	getopt(
-    	args,
+  	getopt(args,
     	"f", &fname,
-		"types", &types,
-		"pretty", &pretty,
-		"trace", &trace,
-		"std", &runstd,
-		"version", &printVersion);
+	"types", &types,
+	"pretty", &pretty,
+	"trace", &trace,
+	"std", &runstd,
+	"version", &printVersion);
 	
 	if(printVersion){
-		writeln("DLisp beta, build ", buildData.buildID);
+		printInfo();
 		return;
 	}
 	
 	if(fname == ""){
-		writeln("DLisp beta, build ", buildData.buildID);
+		printInfo();
 		writeln("Root directory: ", rootDir);
 	}
 		
