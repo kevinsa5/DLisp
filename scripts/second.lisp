@@ -18,5 +18,3 @@ run libs/libstd.lisp
 
 ; call the original
 (func)
-
-

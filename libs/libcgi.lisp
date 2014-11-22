@@ -1,9 +1,14 @@
-run stdlib.lisp
+;run stdlib.lisp
 
 (define parameter-string (get-env "QUERY_STRING"))
 (define parameter-list (split parameter-string "&"))
 
-(define print-cgi-headers (lambda ()
+(define print-html-headers (lambda ()
+	(group
+	(println "Content-type: text/HTML")
+	(println ""))))
+
+(define print-plain-headers (lambda ()
 	(group
 	(println "Content-type: text/plain")
 	(println ""))))

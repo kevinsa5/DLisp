@@ -380,7 +380,12 @@ expr eval(expr tree, Env env){
 					args[i] = eval(args[i], env);
 				}
 			}
-			return f(args, env);
+			try {
+				return f(args, env);
+			} catch (Error err){
+				handleError(e[0], err);
+				throw err;
+			}
 		}
 	}
 }
@@ -396,6 +401,14 @@ void writeTree(expr tree, int level = 0){
 				writeTree(e, level + 1);
 			} 
 		}
+	}
+}
+
+void handleError(expr e, Error err){
+	if(trace){
+		writeln(e,": ", err);
+	} else {
+		writeln(e,": ",err.msg);
 	}
 }
 
@@ -438,6 +451,8 @@ void evalTokens(ref string[] tokens, Env env){
 			}
 		} catch(Exception ex){
 			handleException(ex);
+		} catch(Error err){
+			handleError(null, err);
 		}
 	}
 }
@@ -506,6 +521,10 @@ void main(string[] args)
 		} else {
 			write(": ");
 			tokens = preprocess(stdin);
+			if(stdin.eof()){
+				writeln();
+				return;
+			}
 		}
 		if(tokens.length == 0) continue;
 		evalTokens(tokens, env);

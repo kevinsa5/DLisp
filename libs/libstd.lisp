@@ -32,7 +32,7 @@
 	(define len (strlen key))
 	(define helper (lambda (s key start)
 		(cond ((= (strlen s) 0) -1)
-			  ((= (strlen s) (+ start len)) -1)
+			  ((= (strlen s) (+ start len -1)) -1)
 			  ((= (str-ref s start (+ start len)) key) start)
 			  (#t (helper s key (+ start 1))))))
 	(helper s key 0))))
